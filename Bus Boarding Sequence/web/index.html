@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bus Boarding Sequence Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 30px;
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            background: rgba(0, 123, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            background: rgba(0, 123, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="file"]:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .file-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        button {
+            margin: 10px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .danger-btn {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .danger-btn:hover {
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .download-btn:hover {
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .messages {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .success-message {
+            background: rgba(212, 237, 218, 0.9);
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .error-message {
+            background: rgba(248, 215, 218, 0.9);
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .warning-message {
+            background: rgba(255, 243, 205, 0.9);
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .bookings-preview {
+            margin-top: 30px;
+            background: rgba(233, 236, 239, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .booking-item {
+            background: white;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(222, 226, 230, 0.5);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .booking-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .error-item {
+            border-left: 4px solid #dc3545;
+            background: rgba(248, 215, 218, 0.5);
+        }
+
+        .duplicate-item {
+            border-left: 4px solid #ffc107;
+            background: rgba(255, 243, 205, 0.5);
+        }
+
+        table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(222, 226, 230, 0.5);
+        }
+
+        th {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        tr:nth-child(even) {
+            background: rgba(248, 249, 250, 0.5);
+        }
+
+        tr:hover {
+            background: rgba(0, 123, 255, 0.1);
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+
+        .bus-layout {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .seat {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .seat.occupied {
+            background: #dc3545;
+            color: white;
+            border-color: #c82333;
+        }
+
+        .seat.available {
+            background: #28a745;
+            color: white;
+            border-color: #20c997;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚌 Bus Boarding Sequence Generator</h1>
+
+    <div class="upload-section">
+        <input type="file" id="fileInput" accept=".txt, .xlsx" onchange="handleFileUpload(event)">
+        <div class="file-info">
+            Upload .txt or .xlsx file with booking data
+        </div>
+    </div>
+
+    <div id="statsSection" style="display: none;" class="stats-grid">
+        <div class="stat-card">
+            <div id="totalBookings" class="stat-number">0</div>
+            <div class="stat-label">Total Bookings</div>
+        </div>
+        <div class="stat-card">
+            <div id="totalSeats" class="stat-number">0</div>
+            <div class="stat-label">Total Seats</div>
+        </div>
+        <div class="stat-card">
+            <div id="leftSideSeats" class="stat-number">0</div>
+            <div class="stat-label">Left Side (A,B)</div>
+        </div>
+        <div class="stat-card">
+            <div id="rightSideSeats" class="stat-number">0</div>
+            <div class="stat-label">Right Side (C,D)</div>
+        </div>
+    </div>
+
+    <div id="bookingsPreview" style="display: none;" class="bookings-preview">
+        <h4>📋 Loaded Bookings</h4>
+        <div id="bookingsList"></div>
+    </div>
+
+    <div style="text-align: center;">
+        <button onclick="generateSequence()" id="generateBtn" disabled>🎯 Generate Sequence</button>
+        <button onclick="clearAll()" class="danger-btn" id="clearBtn" disabled>🗑️ Clear All</button>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="resultSection" style="display: none;">
+        <h3 style="text-align:center; margin-top:30px;">🎫 Boarding Sequence</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Sequence</th>
+                <th>Booking ID</th>
+            </tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let bookings = [];
+    let allErrors = [];
+    let duplicates = [];
+    let occupiedSeats = new Set();
+
+    function extractSeatNumber(seat) {
+        return parseInt(seat.replace(/[^0-9]/g, ''));
+    }
+
+    function validateSeat(seat) {
+        if (!seat || seat.length < 2) return false;
+        const row = seat.charAt(0);
+        const numStr = seat.slice(1);
+        const num = parseInt(numStr);
+
+        // Check if it's a valid row letter (case sensitive) and valid number
+        return (['A', 'B', 'c', 'd'].includes(row)) &&
+            num >= 1 && num <= 20 &&
+            numStr === num.toString(); // Ensures no extra characters
+    }
+
+    function normalizeSeat(seat) {
+        // Keep original case for row letters
+        return seat;
+    }
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            resetUI();
+            return;
+        }
+
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        if (extension === 'xlsx' || extension === 'xls') {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: "array" });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    parseData(jsonData);
+                } catch (error) {
+                    showMessage('Error reading Excel file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else if (extension === 'txt') {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const lines = e.target.result.split('\n').map(line => line.trim()).filter(Boolean);
+                const data = lines.map(line => {
+                    // Split by whitespace but handle multiple spaces/tabs
+                    const parts = line.split(/\s+/);
+                    return parts.length >= 2 ? [parts[0], parts.slice(1).join(' ')] : parts;
+                });
+                parseData(data);
+            };
+            reader.readAsText(file);
+        } else {
+            showMessage('❌ Unsupported file type. Please use .txt or .xlsx files', 'error');
+        }
+    }
+
+    function parseData(data) {
+        bookings = [];
+        allErrors = [];
+        duplicates = [];
+        occupiedSeats = new Set();
+
+        let added = 0;
+        let leftCount = 0;
+        let rightCount = 0;
+        const bookingIds = new Set();
+
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row || row.length < 2) {
+                if (row && row.length === 1 && row[0]?.toString().trim()) {
+                    allErrors.push(`Line ${i + 1}: Missing seats data for "${row[0]}"`);
+                }
+                continue;
+            }
+
+            const bookingId = row[0]?.toString().trim();
+            const seatsRaw = row[1]?.toString().trim();
+
+            // Skip header rows
+            if (!bookingId || !seatsRaw ||
+                bookingId.toLowerCase() === "booking_id" ||
+                bookingId.toLowerCase() === "booking id") continue;
+
+            // Check for duplicate booking IDs
+            if (bookingIds.has(bookingId)) {
+                duplicates.push(`Line ${i + 1}: Duplicate Booking ID "${bookingId}"`);
+                continue;
+            }
+
+            // Parse and validate seats
+            const seatStrings = seatsRaw.split(',').map(s => s.trim());
+            const seats = [];
+            let validBooking = true;
+            let bookingLeftCount = 0;
+            let bookingRightCount = 0;
+
+            for (let seatStr of seatStrings) {
+                if (!seatStr) continue;
+
+                const normalizedSeat = normalizeSeat(seatStr);
+
+                if (!validateSeat(normalizedSeat)) {
+                    allErrors.push(`Line ${i + 1}: Invalid seat "${seatStr}" for booking "${bookingId}"`);
+                    validBooking = false;
+                    continue;
+                }
+
+                if (occupiedSeats.has(normalizedSeat)) {
+                    allErrors.push(`Line ${i + 1}: Seat "${normalizedSeat}" already occupied`);
+                    validBooking = false;
+                    continue;
+                }
+
+                const rowChar = normalizedSeat.charAt(0);
+                if (['A', 'B'].includes(rowChar)) {
+                    if (leftCount >= 20) {
+                        allErrors.push(`Line ${i + 1}: Left side seat limit (20) exceeded`);
+                        validBooking = false;
+                        break;
+                    }
+                    bookingLeftCount++;
+                } else if (['c', 'd'].includes(rowChar)) {
+                    if (rightCount >= 20) {
+                        allErrors.push(`Line ${i + 1}: Right side seat limit (20) exceeded`);
+                        validBooking = false;
+                        break;
+                    }
+                    bookingRightCount++;
+                }
+
+                seats.push(normalizedSeat);
+                occupiedSeats.add(normalizedSeat);
+            }
+
+            if (!validBooking || seats.length === 0) continue;
+
+            leftCount += bookingLeftCount;
+            rightCount += bookingRightCount;
+
+            const minSeat = Math.min(...seats.map(s => extractSeatNumber(s)));
+            const maxSeat = Math.max(...seats.map(s => extractSeatNumber(s)));
+
+            bookings.push({
+                bookingId,
+                seats,
+                minSeatNumber: minSeat,
+                maxSeatNumber: maxSeat,
+                seatCount: seats.length
+            });
+            bookingIds.add(bookingId);
+            added++;
+        }
+
+        updateUI(added, leftCount, rightCount);
+    }
+
+    function updateUI(addedCount, leftCount, rightCount) {
+        const list = document.getElementById('bookingsList');
+
+        // Show valid bookings
+        let html = bookings.map(b => {
+            const seatRange = b.minSeatNumber === b.maxSeatNumber ?
+                `Row ${b.minSeatNumber}` :
+                `Rows ${b.minSeatNumber}-${b.maxSeatNumber}`;
+            return `<div class="booking-item">
+                <strong>${b.bookingId}</strong> → ${b.seats.join(', ')}
+                <span style="color: #666; font-size: 12px;">(${seatRange})</span>
+            </div>`;
+        }).join('');
+
+        // Show errors
+        if (allErrors.length > 0) {
+            html += '<hr style="margin: 20px 0; border: 1px solid #ddd;">';
+            html += '<h5 style="color: #dc3545; margin-bottom: 10px;">❌ Validation Errors:</h5>';
+            html += allErrors.map(error =>
+                `<div class="booking-item error-item">${error}</div>`
+            ).join('');
+        }
+
+        // Show duplicates
+        if (duplicates.length > 0) {
+            if (allErrors.length === 0) html += '<hr style="margin: 20px 0; border: 1px solid #ddd;">';
+            html += '<h5 style="color: #ffc107; margin-bottom: 10px;">⚠️ Duplicate Entries:</h5>';
+            html += duplicates.map(duplicate =>
+                `<div class="booking-item duplicate-item">${duplicate}</div>`
+            ).join('');
+        }
+
+        list.innerHTML = html;
+
+        // Update stats
+        document.getElementById('totalBookings').textContent = bookings.length;
+        document.getElementById('totalSeats').textContent = occupiedSeats.size;
+        document.getElementById('leftSideSeats').textContent = leftCount;
+        document.getElementById('rightSideSeats').textContent = rightCount;
+
+        // Show/hide sections
+        document.getElementById('bookingsPreview').style.display = bookings.length > 0 || allErrors.length > 0 || duplicates.length > 0 ? 'block' : 'none';
+        document.getElementById('statsSection').style.display = bookings.length > 0 ? 'grid' : 'none';
+
+        // Enable/disable buttons
+        const hasValidBookings = bookings.length > 0;
+        document.getElementById('generateBtn').disabled = !hasValidBookings;
+        document.getElementById('clearBtn').disabled = !hasValidBookings && allErrors.length === 0 && duplicates.length === 0;
+
+        // Show messages
+        if (addedCount > 0) {
+            const errorCount = allErrors.length + duplicates.length;
+            const message = errorCount > 0 ?
+                `✅ Loaded ${addedCount} valid bookings (${errorCount} errors found)` :
+                `✅ Successfully loaded ${addedCount} bookings`;
+            showMessage(message, errorCount > 0 ? 'warning' : 'success');
+        } else if (allErrors.length > 0 || duplicates.length > 0) {
+            showMessage(`❌ No valid bookings found. ${allErrors.length + duplicates.length} errors detected.`, 'error');
+        }
+    }
+
+    function generateSequence() {
+        if (bookings.length === 0) {
+            showMessage('❌ No valid bookings to generate sequence', 'error');
+            return;
+        }
+
+        // Sort by minimum seat number (descending for each side), then by booking ID
+        const sorted = [...bookings].sort((a, b) => {
+            // Get the side of each booking (left: A,B vs right: c,d)
+            const aLeftSide = a.seats.some(seat => ['A', 'B'].includes(seat.charAt(0)));
+            const bLeftSide = b.seats.some(seat => ['A', 'B'].includes(seat.charAt(0)));
+
+            // If both bookings are on the same side
+            if (aLeftSide === bLeftSide) {
+                // Sort by maximum seat number in descending order (20 to 1)
+                if (a.maxSeatNumber !== b.maxSeatNumber) {
+                    return b.maxSeatNumber - a.maxSeatNumber;
+                }
+                return a.bookingId.localeCompare(b.bookingId);
+            }
+
+            // Left side bookings come first
+            return aLeftSide ? -1 : 1;
+        });
+
+        const resultBody = document.getElementById('resultBody');
+        resultBody.innerHTML = sorted.map((b, i) => {
+            return `
+            <tr>
+                <td><strong>${i + 1}</strong></td>
+                <td><strong>${b.bookingId}</strong></td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('resultSection').style.display = 'block';
+        showMessage(`🎯 Boarding sequence generated for ${sorted.length} bookings!`, 'success');
+
+        // Scroll to results
+        setTimeout(() => {
+            document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+    }
+
+    function downloadSequence() {
+        if (bookings.length === 0) return;
+
+        const sorted = [...bookings].sort((a, b) => {
+            if (a.minSeatNumber !== b.minSeatNumber)
+                return a.minSeatNumber - b.minSeatNumber;
+            return a.bookingId.localeCompare(b.bookingId);
+        });
+
+        const csvContent = [
+            ['Sequence', 'Booking_ID'],
+            ...sorted.map((b, i) => [i + 1, b.bookingId])
+        ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `boarding_sequence_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showMessage('💾 Boarding sequence downloaded as CSV!', 'success');
+    }
+
+    function clearAll() {
+        resetUI();
+        showMessage('🗑️ All data cleared successfully', 'success');
+    }
+
+    function resetUI() {
+        bookings = [];
+        allErrors = [];
+        duplicates = [];
+        occupiedSeats = new Set();
+        document.getElementById('fileInput').value = '';
+        document.getElementById('bookingsList').innerHTML = '';
+        document.getElementById('bookingsPreview').style.display = 'none';
+        document.getElementById('statsSection').style.display = 'none';
+        document.getElementById('generateBtn').disabled = true;
+        document.getElementById('clearBtn').disabled = true;
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('messages').innerHTML = '';
+    }
+
+    function showMessage(msg, type = 'success') {
+        const box = document.getElementById('messages');
+        const className = type === 'error' ? 'error-message' :
+            type === 'warning' ? 'warning-message' : 'success-message';
+        box.innerHTML = `<div class="messages ${className}">${msg}</div>`;
+        setTimeout(() => { box.innerHTML = ''; }, 6000);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        showMessage('🚌 Bus Boarding Sequence Generator Ready! Upload your booking data to begin.', 'success');
+    });
+</script>
+
+</body>
+</html>
